@@ -3,6 +3,7 @@ var ERA5_DATASET = "ECMWF/ERA5/MONTHLY";
 var ERA5_SCALE_METERS = 30000;
 var ERA5_START_YEAR = 1979;
 var ANNUAL_TEMPERATURE_STAT = "mean";
+//Define growing season when temp is >= 5C
 var GROWING_SEASON_TEMP_C = 5;
 var INTERANNUAL_RAINFALL_WINDOW_YEARS = 10;
 var CLEAR_LABEL = "(*clear*)";
@@ -43,10 +44,7 @@ function annualPrecipForYear(year) {
 
 function annualTemperatureForYear(year) {
     var monthly = era5MonthlyForYear(year).select("mean_2m_air_temperature");
-    var image =
-        ANNUAL_TEMPERATURE_STAT === "median"
-            ? monthly.median()
-            : monthly.mean();
+    var image = monthly.mean();
     return toCelsius(image);
 }
 
@@ -80,7 +78,7 @@ function interannualRainfallVariability(endYear) {
     var startYear = ee
         .Number(endYear)
         .subtract(INTERANNUAL_RAINFALL_WINDOW_YEARS - 1)
-        .max(ERA5_START_YEAR)
+        .max(ERA5_START_YEAR) //keeps it in range
         .toInt();
     var years = ee.List.sequence(startYear, endYear);
     var annualTotals = ee.ImageCollection.fromImages(
@@ -105,27 +103,30 @@ function makeLayerDefinition(name, build, defaultRange) {
 
 var LAYER_DEFINITIONS = [
     makeLayerDefinition(
-        (ANNUAL_TEMPERATURE_STAT === "median" ? "Median" : "Mean") +
-            " annual temperature (°C)",
+        "Mean annual temperature (C) (ESA/Monthly)",
         annualTemperatureForYear,
         { min: -20, max: 30 }
     ),
     makeLayerDefinition(
-        "Minimum annual temperature (°C)",
+        "Minimum annual temperature (C) (ESA/Monthly)",
         annualMinTemperatureForYear,
         { min: -40, max: 20 }
     ),
     makeLayerDefinition(
-        "Maximum annual temperature (°C)",
+        "Maximum annual temperature (C) (ESA/Monthly)",
         annualMaxTemperatureForYear,
         { min: 0, max: 45 }
     ),
-    makeLayerDefinition("Annual precipitation (mm)", annualPrecipForYear, {
-        min: 0,
-        max: 3000
-    }),
     makeLayerDefinition(
-        "Growing season avg temp (°C)",
+        "Annual precipitation (mm) (ESA/Monthly)",
+        annualPrecipForYear,
+        {
+            min: 0,
+            max: 3000
+        }
+    ),
+    makeLayerDefinition(
+        "Growing season avg temp (C)",
         growingSeasonAverageTemperatureForYear,
         { min: 0, max: 25 }
     ),
@@ -135,7 +136,7 @@ var LAYER_DEFINITIONS = [
         { min: 0, max: 250 }
     ),
     makeLayerDefinition(
-        "Interannual rainfall variability (CV %, " +
+        "Interannual rainfall variability (CV%, " +
             INTERANNUAL_RAINFALL_WINDOW_YEARS +
             "-year)",
         interannualRainfallVariability,
