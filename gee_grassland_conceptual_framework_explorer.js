@@ -91,6 +91,17 @@ function interannualRainfallVariability(endYear) {
     return stdDev.divide(mean).multiply(100).updateMask(mean.neq(0));
 }
 
+function SPEIbase(monthWindow) {
+    return function (year) {
+        var bandName = "SPEI_" + monthWindow + "_month";
+        return ee
+            .ImageCollection("CSIC/SPEI/2_10")
+            .filterDate(year + "-01-01", year + 1 + "-01-01")
+            .select(bandName)
+            .mean();
+    };
+}
+
 function makeLayerDefinition(name, build, defaultRange) {
     return {
         name: name,
@@ -141,7 +152,19 @@ var LAYER_DEFINITIONS = [
             "-year)",
         interannualRainfallVariability,
         { min: 0, max: 50 }
-    )
+    ),
+    makeLayerDefinition("Annual mean of SPEI 12 month index", SPEIbase(12), {
+        min: -2,
+        max: 2
+    }),
+    makeLayerDefinition("Annual mean of SPEI 24 month index", SPEIbase(24), {
+        min: -2,
+        max: 2
+    }),
+    makeLayerDefinition("Annual mean of SPEI 48 month index", SPEIbase(48), {
+        min: -2,
+        max: 2
+    })
 ];
 
 var legend_styles = {
