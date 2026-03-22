@@ -1,4 +1,4 @@
-var DEFAULTYEAR = "2005";
+var DEFAULTYEAR = "2025";
 var ERA5_DATASET = "ECMWF/ERA5/MONTHLY";
 var SAMPLE_SCALE_METERS = 30;
 var ERA5_START_YEAR = 1979;
@@ -27,6 +27,79 @@ var MODIS_BURN_YEAR_MONTHLY = MODIS_BURNED_AREA_IC.map(function (img) {
         .setDefaultProjection(MODIS_BURN_PROJ)
         .copyProperties(img, ["system:time_start"]);
 });
+
+var GRASSLAND_PROB_IC = ee.ImageCollection(
+    "projects/global-pasture-watch/assets/ggc-30m/v1/nat-semi-grassland_p"
+);
+var HMI_IMG = ee.Image(
+    "projects/hm-30x30/assets/output/v20240801/HMv20240801_2022s_AA_300"
+);
+var HII_IC = ee
+    .ImageCollection("projects/HII/v1/hii")
+    .filterDate("2001-01-01", "2021-01-01");
+
+var PROBABILITY_INTEGRITY_START_YEAR = 2001;
+var PROBABILITY_INTEGRITY_END_YEAR = 2020;
+var GRASSLAND_PROB_THRESHOLD = 60;
+var HMI_THRESHOLD = 0.1;
+var HII_THRESHOLD = 0.08;
+
+function noTwoConsecutiveZerosFromAnnualBinary(buildAnnualBinary) {
+    var years = ee.List.sequence(
+        PROBABILITY_INTEGRITY_START_YEAR,
+        PROBABILITY_INTEGRITY_END_YEAR
+    );
+    var annualBinaryIC = ee.ImageCollection.fromImages(
+        years.map(function (year) {
+            year = ee.Number(year);
+            return ee
+                .Image(buildAnnualBinary(year))
+                .rename("g")
+                .set("year", year);
+        })
+    );
+    var list = annualBinaryIC.toList(annualBinaryIC.size());
+    return ee.ImageCollection.fromImages(
+        ee.List.sequence(0, ee.Number(list.size()).subtract(2)).map(
+            function (i) {
+                i = ee.Number(i);
+                return ee.Image(list.get(i)).or(ee.Image(list.get(i.add(1))));
+            }
+        )
+    )
+        .reduce(ee.Reducer.min())
+        .eq(1);
+}
+
+var PROBABILITY_INTEGRITY_INDEX = noTwoConsecutiveZerosFromAnnualBinary(
+    function (year) {
+        return GRASSLAND_PROB_IC.filterDate(
+            ee.Date.fromYMD(year, 1, 1),
+            ee.Date.fromYMD(year.add(1), 1, 1)
+        )
+            .first()
+            .select(0)
+            .gte(GRASSLAND_PROB_THRESHOLD);
+    }
+)
+    .and(
+        noTwoConsecutiveZerosFromAnnualBinary(function (year) {
+            return HII_IC.filterDate(
+                ee.Date.fromYMD(year, 1, 1),
+                ee.Date.fromYMD(year.add(1), 1, 1)
+            )
+                .mean()
+                .divide(7000)
+                .lt(HII_THRESHOLD);
+        })
+    )
+    .and(HMI_IMG.lte(HMI_THRESHOLD))
+    .selfMask()
+    .toByte();
+
+function probabilityIntegrityIndex() {
+    return PROBABILITY_INTEGRITY_INDEX;
+}
 
 function modisYearsSinceBurn(year) {
     var targetYear = ee
@@ -194,6 +267,11 @@ function makeLayerDefinition(name, build, defaultRange) {
 }
 
 var LAYER_DEFINITIONS = [
+    makeLayerDefinition(
+        "Grassland Reference Sites",
+        probabilityIntegrityIndex,
+        { min: 0, max: 1 }
+    ),
     makeLayerDefinition(
         "Mean annual temperature (C) (ESA/Monthly)",
         annualTemperatureForYear,

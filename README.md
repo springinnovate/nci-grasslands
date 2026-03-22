@@ -7,3 +7,4 @@
 - Added SRTM Multi-Scale Topographic Position Index, negative values show pixel is lower than its surrounds and positive is higher than surroundings. (https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_SRTM_mTPI)
 - Added SRTM Topographic Diversity ranging from 0-1 where low values show similar moisture/exposure/hillslope environments and high is a high diversity of them. (https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_SRTM_topoDiversity#description)
 - Added a 'years since last burn' calculation from https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MCD64A1 which given the current year calculates the difference between that and the most recent year that pixel burned that is less than the current year.
+- Transplanted the grasslands reference sites layer developed in a previous app.
