@@ -110,6 +110,15 @@ function fldasAnnualSoilMoisture(year) {
         .mean();
 }
 
+function soilOrganicCarbon(depth) {
+    function _op(year) {
+        return ee
+            .Image("OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02")
+            .select("b" + depth);
+    }
+    return _op;
+}
+
 function makeLayerDefinition(name, build, defaultRange) {
     return {
         name: name,
@@ -179,6 +188,30 @@ var LAYER_DEFINITIONS = [
         {
             min: 0,
             max: 40
+        }
+    ),
+    makeLayerDefinition(
+        "Soil organic carbon (10 cm, OpenLandMap, no time domain)",
+        soilOrganicCarbon(10),
+        {
+            min: 0,
+            max: 25
+        }
+    ),
+    makeLayerDefinition(
+        "Soil organic carbon (30 cm, OpenLandMap, no time domain)",
+        soilOrganicCarbon(30),
+        {
+            min: 0,
+            max: 25
+        }
+    ),
+    makeLayerDefinition(
+        "Soil organic carbon (60 cm, OpenLandMap, no time domain)",
+        soilOrganicCarbon(60),
+        {
+            min: 0,
+            max: 25
         }
     )
 ];
