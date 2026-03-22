@@ -750,7 +750,7 @@ var panel_list = [];
 
     panel.add(
         ui.Label({
-            value: "Current Year",
+            value: "Analysis Year",
             style: { backgroundColor: "rgba(0, 0, 0, 0)" }
         })
     );
