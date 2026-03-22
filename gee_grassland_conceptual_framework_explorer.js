@@ -7,6 +7,47 @@ var GROWING_SEASON_TEMP_C = 5;
 var UPSTREAM_AREA_FOR_STREAMS_KM2 = 25;
 var INTERANNUAL_RAINFALL_WINDOW_YEARS = 10;
 var CLEAR_LABEL = "(*clear*)";
+var MODIS_BURNED_AREA_START_YEAR = 2000;
+var MODIS_BURNED_AREA_END_YEAR = 2026;
+
+var MODIS_BURNED_AREA_IC = ee
+    .ImageCollection("MODIS/061/MCD64A1")
+    .select("BurnDate");
+var MODIS_BURN_PROJ = ee.Image(MODIS_BURNED_AREA_IC.first()).projection();
+
+var MODIS_BURN_YEAR_MONTHLY = MODIS_BURNED_AREA_IC.map(function (img) {
+    var burnYear = ee.Number(ee.Date(img.get("system:time_start")).get("year"));
+    var burned = img.gt(0).selfMask();
+
+    return burned
+        .multiply(0)
+        .add(burnYear)
+        .toInt16()
+        .rename("burn_year")
+        .setDefaultProjection(MODIS_BURN_PROJ)
+        .copyProperties(img, ["system:time_start"]);
+});
+
+function modisYearsSinceBurn(year) {
+    var targetYear = ee
+        .Number(year)
+        .toInt()
+        .max(MODIS_BURNED_AREA_START_YEAR)
+        .min(MODIS_BURNED_AREA_END_YEAR);
+
+    var lastBurnYear = MODIS_BURN_YEAR_MONTHLY.filterDate(
+        ee.Date.fromYMD(MODIS_BURNED_AREA_START_YEAR, 1, 1),
+        ee.Date.fromYMD(targetYear.add(1), 1, 1)
+    ).max();
+
+    return lastBurnYear
+        .multiply(0)
+        .add(targetYear)
+        .subtract(lastBurnYear)
+        .rename("years_since_burn")
+        .toInt8()
+        .setDefaultProjection(MODIS_BURN_PROJ);
+}
 
 function toCelsius(image) {
     return image.subtract(273.15);
@@ -262,6 +303,14 @@ var LAYER_DEFINITIONS = [
         {
             min: 1,
             max: 5000
+        }
+    ),
+    makeLayerDefinition(
+        "Years since last burn from current year",
+        modisYearsSinceBurn,
+        {
+            min: 0,
+            max: 26
         }
     )
 ];
