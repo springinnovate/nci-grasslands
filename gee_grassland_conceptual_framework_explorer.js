@@ -1,6 +1,6 @@
 var DEFAULTYEAR = "2005";
 var ERA5_DATASET = "ECMWF/ERA5/MONTHLY";
-var ERA5_SCALE_METERS = 30000;
+var SAMPLE_SCALE_METERS = 30;
 var ERA5_START_YEAR = 1979;
 var ANNUAL_TEMPERATURE_STAT = "mean";
 var GROWING_SEASON_TEMP_C = 5;
@@ -86,8 +86,8 @@ function interannualRainfallVariability(endYear) {
             return annualPrecipForYear(year);
         })
     );
-    var mean = annualTotals.mean().rename("B0");
-    var stdDev = annualTotals.reduce(ee.Reducer.stdDev()).rename("B0");
+    var mean = annualTotals.mean();
+    var stdDev = annualTotals.reduce(ee.Reducer.stdDev());
     return stdDev.divide(mean).multiply(100).updateMask(mean.neq(0));
 }
 
@@ -255,13 +255,13 @@ var LAYER_DEFINITIONS = [
         }
     ),
     makeLayerDefinition(
-        "Distance to streams thresholed from " +
+        "Distance to streams (m) thresholded from " +
             UPSTREAM_AREA_FOR_STREAMS_KM2 +
             " km2 drainage",
         distanceToStreams,
         {
             min: 1,
-            max: 100
+            max: 5000
         }
     )
 ];
@@ -287,7 +287,7 @@ function detectRange(image, geometry, fallbackRange, callback) {
     var dictionary = image.reduceRegion({
         reducer: ee.Reducer.percentile([10, 90], ["p10", "p90"]),
         geometry: geometry,
-        scale: ERA5_SCALE_METERS,
+        scale: SAMPLE_SCALE_METERS * 100,
         bestEffort: true,
         maxPixels: 1e8,
         tileScale: 4
@@ -684,7 +684,7 @@ panel_list.forEach(function (panel_array) {
             var point_sample = active_context.raster.sampleRegions({
                 collection: ee.FeatureCollection(point),
                 geometries: true,
-                scale: ERA5_SCALE_METERS
+                scale: SAMPLE_SCALE_METERS
             });
 
             ee.data.computeValue(point_sample, function (val) {
