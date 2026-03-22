@@ -102,6 +102,14 @@ function SPEIbase(monthWindow) {
     };
 }
 
+function fldasAnnualSoilMoisture(year) {
+    return ee
+        .ImageCollection("NASA/FLDAS/NOAH01/C/GL/M/V001")
+        .filterDate(year + "-01-01", year + 1 + "-01-01")
+        .select("SoilMoi10_40cm_tavg")
+        .mean();
+}
+
 function makeLayerDefinition(name, build, defaultRange) {
     return {
         name: name,
@@ -164,7 +172,15 @@ var LAYER_DEFINITIONS = [
     makeLayerDefinition("Annual mean of SPEI 48 month index", SPEIbase(48), {
         min: -2,
         max: 2
-    })
+    }),
+    makeLayerDefinition(
+        "Annual soil moisture (GLDAS 10-40 cm)",
+        fldasAnnualSoilMoisture,
+        {
+            min: 0,
+            max: 40
+        }
+    )
 ];
 
 var legend_styles = {
