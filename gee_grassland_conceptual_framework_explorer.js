@@ -39,7 +39,7 @@ function growingSeasonMonthlyForYear(year) {
 function annualPrecipForYear(year) {
     return toMillimeters(
         era5MonthlyForYear(year).select("total_precipitation").sum()
-    ).rename("annual_precip_mm");
+    );
 }
 
 function annualTemperatureForYear(year) {
