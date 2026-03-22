@@ -119,6 +119,16 @@ function soilOrganicCarbon(depth) {
     return _op;
 }
 
+function srtmTopographicDiversity(year) {
+    return ee
+        .Image("CSP/ERGo/1_0/Global/SRTM_topoDiversity")
+        .select("constant");
+}
+
+function srtmMTPI(year) {
+    return ee.Image("CSP/ERGo/1_0/Global/SRTM_mTPI").select("elevation");
+}
+
 function makeLayerDefinition(name, build, defaultRange) {
     return {
         name: name,
@@ -212,6 +222,23 @@ var LAYER_DEFINITIONS = [
         {
             min: 0,
             max: 25
+        }
+    ),
+    makeLayerDefinition(
+        "SRTM topographic diversity (0-1 low-high diversity)",
+        srtmTopographicDiversity,
+        {
+            min: 0,
+            max: 1
+        }
+    ),
+
+    makeLayerDefinition(
+        "SRTM mTPI <0 to >0 lower or higher neighbors",
+        srtmMTPI,
+        {
+            min: -30,
+            max: 30
         }
     )
 ];
