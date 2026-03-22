@@ -3,8 +3,8 @@ var ERA5_DATASET = "ECMWF/ERA5/MONTHLY";
 var ERA5_SCALE_METERS = 30000;
 var ERA5_START_YEAR = 1979;
 var ANNUAL_TEMPERATURE_STAT = "mean";
-//Define growing season when temp is >= 5C
 var GROWING_SEASON_TEMP_C = 5;
+var UPSTREAM_AREA_FOR_STREAMS_KM2 = 25;
 var INTERANNUAL_RAINFALL_WINDOW_YEARS = 10;
 var CLEAR_LABEL = "(*clear*)";
 
@@ -129,6 +129,19 @@ function srtmMTPI(year) {
     return ee.Image("CSP/ERGo/1_0/Global/SRTM_mTPI").select("elevation");
 }
 
+function distanceToStreams(year) {
+    var streams = ee
+        .Image("MERIT/Hydro/v1_0_1")
+        .select("upa")
+        .gte(25)
+        .unmask(0);
+
+    return streams
+        .fastDistanceTransform()
+        .sqrt()
+        .multiply(ee.Image.pixelArea().sqrt());
+}
+
 function makeLayerDefinition(name, build, defaultRange) {
     return {
         name: name,
@@ -239,6 +252,16 @@ var LAYER_DEFINITIONS = [
         {
             min: -30,
             max: 30
+        }
+    ),
+    makeLayerDefinition(
+        "Distance to streams thresholed from " +
+            UPSTREAM_AREA_FOR_STREAMS_KM2 +
+            " km2 drainage",
+        distanceToStreams,
+        {
+            min: 1,
+            max: 100
         }
     )
 ];
