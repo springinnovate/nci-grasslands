@@ -2,7 +2,7 @@ from collections import defaultdict
 import json
 import ee
 
-BAD_STATES = {"FAILED", "CANCELLED"}
+BAD_STATES = {"FAILED", "CANCELLED", "CANCEL_REQUESTED"}
 
 
 def init_ee():
