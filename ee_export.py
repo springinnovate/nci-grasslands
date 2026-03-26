@@ -1,6 +1,8 @@
 import json
 import ee
 
+BAD_STATES = {"FAILED", "CANCELLED"}
+
 
 def init_ee():
     """Initalize earthengine api with authentication."""
@@ -13,6 +15,12 @@ def init_ee():
 def main():
     """Entry point."""
     init_ee()
+
+    current_task_list = {
+        status.get("description"): status.get("state")
+        for t in ee.batch.Task.list()
+        if (status := t.status())
+    }
 
     GRASSLAND_PROB_IC = ee.ImageCollection(
         "projects/global-pasture-watch/assets/ggc-30m/v1/nat-semi-grassland_p"
@@ -51,20 +59,31 @@ def main():
     # SRTM_MTPI_IMG = ee.Image("CSP/ERGo/1_0/Global/SRTM_mTPI")
     # MERIT_HYDRO_IMG = ee.Image("MERIT/Hydro/v1_0_1")
 
-    task = ee.batch.Export.image.toCloudStorage(
-        image=GRASSLAND_PROB_IC,
-        description="nat_semi_grassland_p",
-        bucket="ecoshard-root",
-        fileNamePrefix="gee_export/grassland_prob_tiles/tile",
-        region=GRASSLAND_PROB_IC.geometry(),
-        maxPixels=1e13,
-        shardSize=256,
-        fileDimensions=4096,
-        skipEmptyTiles=True,
-        fileFormat="GeoTIFF",
-        formatOptions={"cloudOptimized": True},
-    )
-    task.start()
+    for year in range(2000, 2024):
+        grassland_p_img = GRASSLAND_PROB_IC.filterDate(
+            f"{year}-01-01", f"{year}-12-31"
+        ).first()
+        description = f"nat_semi_grassland_p_{year}"
+        if (
+            current_state := current_task_list.get(description)
+            not in BAD_STATES
+        ):
+            print(f"{description} found in task list as {current_state}")
+        task = ee.batch.Export.image.toCloudStorage(
+            image=grassland_p_img,
+            description=description,
+            bucket="ecoshard-root",
+            fileNamePrefix=f"gee_export/{description}",
+            region=grassland_p_img.geometry(),
+            maxPixels=1e13,
+            shardSize=256,
+            fileDimensions=4096,
+            skipEmptyTiles=True,
+            fileFormat="GeoTIFF",
+            formatOptions={"cloudOptimized": True},
+        )
+        task.start()
+        print(f"started {description}")
 
     print("done")
 
