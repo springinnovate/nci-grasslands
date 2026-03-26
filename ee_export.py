@@ -63,7 +63,6 @@ def main():
             fileDimensions=4096,
             skipEmptyTiles=True,
             fileFormat="GeoTIFF",
-            formatOptions={"cloudOptimized": True},
         )
         task.start()
         print(f"started {description}")
