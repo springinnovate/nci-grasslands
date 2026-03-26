@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import ee
 
@@ -16,35 +17,16 @@ def main():
     """Entry point."""
     init_ee()
 
-    current_task_list = {
-        status.get("description"): status.get("state")
-        for t in ee.batch.Task.list()
-        if (status := t.status())
-    }
+    task_statuses = defaultdict(set)
+    for task in ee.batch.Task.list():
+        status = task.status()
+        task_statuses[status["description"]].add(status["state"])
+    print(task_statuses)
 
     GRASSLAND_PROB_IC = ee.ImageCollection(
         "projects/global-pasture-watch/assets/ggc-30m/v1/nat-semi-grassland_p"
     )
 
-    first_img = ee.Image(GRASSLAND_PROB_IC.first())
-    proj = first_img.projection()
-
-    info = {
-        "image_count": GRASSLAND_PROB_IC.size(),
-        "first_time_start_ms": GRASSLAND_PROB_IC.aggregate_min(
-            "system:time_start"
-        ),
-        "last_time_start_ms": GRASSLAND_PROB_IC.aggregate_max(
-            "system:time_start"
-        ),
-        "projection_crs": proj.crs(),
-        "projection_transform": proj.transform(),
-        "nominal_scale_m": proj.nominalScale(),
-        "band_names": first_img.bandNames(),
-        "first_image_id": first_img.get("system:index"),
-    }
-
-    print(ee.Dictionary(info).getInfo())
     # HMI_IMG = ee.Image(
     #     "projects/hm-30x30/assets/output/v20240801/HMv20240801_2022s_AA_300"
     # )
@@ -64,11 +46,12 @@ def main():
             f"{year}-01-01", f"{year}-12-31"
         ).first()
         description = f"nat_semi_grassland_p_{year}"
-        if (
-            current_state := current_task_list.get(description)
-            not in BAD_STATES
-        ):
-            print(f"{description} found in task list as {current_state}")
+        good_states = task_statuses.get(description) - BAD_STATES
+        if good_states:
+            print(
+                f"{description} doesn't need to be restarted because it's in {good_states}"
+            )
+            continue
         task = ee.batch.Export.image.toCloudStorage(
             image=grassland_p_img,
             description=description,
