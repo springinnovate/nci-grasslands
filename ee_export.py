@@ -21,7 +21,6 @@ def main():
     for task in ee.batch.Task.list():
         status = task.status()
         task_statuses[status["description"]].add(status["state"])
-    print(task_statuses)
 
     GRASSLAND_PROB_IC = ee.ImageCollection(
         "projects/global-pasture-watch/assets/ggc-30m/v1/nat-semi-grassland_p"
@@ -42,9 +41,31 @@ def main():
     # MERIT_HYDRO_IMG = ee.Image("MERIT/Hydro/v1_0_1")
 
     for year in range(2000, 2024):
-        grassland_p_img = GRASSLAND_PROB_IC.filterDate(
-            f"{year}-01-01", f"{year}-12-31"
+        grassland_p_img = GRASSLAND_PROB_IC.filter(
+            ee.Filter.calendarRange(year, year, "year")
         ).first()
+
+        proj = grassland_p_img.projection()
+        scale = proj.nominalScale()
+
+        bounds = grassland_p_img.geometry().bounds()
+
+        dims = bounds.transform(proj, 1).coordinates().get(0)
+        xs = ee.List(dims).map(lambda p: ee.List(p).get(0))
+        ys = ee.List(dims).map(lambda p: ee.List(p).get(1))
+
+        xmin = ee.Number(xs.reduce(ee.Reducer.min()))
+        xmax = ee.Number(xs.reduce(ee.Reducer.max()))
+        ymin = ee.Number(ys.reduce(ee.Reducer.min()))
+        ymax = ee.Number(ys.reduce(ee.Reducer.max()))
+
+        width = xmax.subtract(xmin).divide(scale).round()
+        height = ymax.subtract(ymin).divide(scale).round()
+
+        print("width:", width.getInfo())
+        print("height:", height.getInfo())
+        return
+
         description = f"nat_semi_grassland_p_{year}"
         good_states = task_statuses.get(description) - BAD_STATES
         if good_states:
