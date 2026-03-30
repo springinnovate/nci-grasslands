@@ -40,7 +40,7 @@ def main():
     # SRTM_MTPI_IMG = ee.Image("CSP/ERGo/1_0/Global/SRTM_mTPI")
     # MERIT_HYDRO_IMG = ee.Image("MERIT/Hydro/v1_0_1")
 
-    for year in range(2000, 2024):
+    for year in range(2023, 2024):
         grassland_p_img = GRASSLAND_PROB_IC.filter(
             ee.Filter.calendarRange(year, year, "year")
         ).first()
