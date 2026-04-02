@@ -234,7 +234,7 @@ class Era5MonthlyTemperatureLayer(LayerExportPlugin):
     ]
 
     def iter_windows(self):
-        return month_windows_range("1979-03-01", "1979-04-01")
+        return month_windows_range("1979-03-01", "2020-06-01")
 
     def build_image(self, window):
         year = window.meta["year"]
