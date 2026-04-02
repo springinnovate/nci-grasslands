@@ -234,7 +234,7 @@ class Era5MonthlyTemperatureLayer(LayerExportPlugin):
     ]
 
     def iter_windows(self):
-        return month_windows_range("1979-01-01", "2020-06-01")
+        return month_windows_range("1979-03-01", "1979-04-01")
 
     def build_image(self, window):
         year = window.meta["year"]
@@ -258,7 +258,12 @@ class Era5MonthlyTemperatureLayer(LayerExportPlugin):
         return (f"era5_monthly_{year}_{month:02d}",)
 
     def region(self, image, window):
-        return image.geometry().bounds()
+        global_bounds = ee.Geometry.Rectangle(
+            [-180, -90, 180, 90],
+            proj="EPSG:4326",
+            geodesic=False,
+        )
+        return global_bounds
 
 
 def run_export_layers(layers):
@@ -277,7 +282,6 @@ def run_export_layers(layers):
                 continue
 
             image = plan.build_image()
-            image = image.clip(image.geometry().bounds())
             task = ee.batch.Export.image.toCloudStorage(
                 image=image,
                 description=plan.description,
